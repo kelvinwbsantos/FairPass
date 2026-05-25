@@ -32,16 +32,15 @@ contract FairPassEvent is ERC721, Ownable {
     /// @notice Timestamp de início do evento
     uint256 public immutable eventTimestamp;
 
+
     /// @notice Emitido quando um novo ingresso é mintado
     /// @param buyer Endereço do comprador
     /// @param eventAddress Endereço do contrato do evento
     /// @param tokenId ID do ingresso NFT
-    /// @param used Booleano de uso do ticket
     event TicketMinted(
         address indexed buyer,
         address indexed eventAddress,
-        uint256 tokenId,
-        bool used
+        uint256 tokenId
     );
 
     event EventConcluded (
@@ -57,6 +56,9 @@ contract FairPassEvent is ERC721, Ownable {
         uint256 payout,
         uint256 fee
     );
+
+    event EventCanceled(uint256 timestamp);
+    event TicketsRefunded(address indexed buyer, uint256 amountRefunded, uint256 quantity);
 
     /// @notice Inicializa um novo contrato de evento
     /// @param _name Nome do NFT
@@ -89,11 +91,13 @@ contract FairPassEvent is ERC721, Ownable {
         require(_totalMinted < maxSupply, "Out of tickets");
         require(msg.value == ticketPrice, "Not enough balance");
 
+        require(balanceOf(msg.sender) < 2, "Max 2 tickets per wallet");
+
         uint256 tokenId = _totalMinted;
         _totalMinted++;
 
         _safeMint(msg.sender, tokenId);
-        emit TicketMinted(msg.sender, address(this), tokenId, false);
+        emit TicketMinted(msg.sender, address(this), tokenId);
     }
 
     /// @notice Retorna a quantidade total de ingressos emitidos
@@ -133,6 +137,37 @@ contract FairPassEvent is ERC721, Ownable {
     }
 
     // cancel event function, needs to refund
+    function cancelEvent() external onlyOwner {
+        require(status == EventStatus.Active, "Event cannot be canceled without starting");
+        status = EventStatus.Canceled;
+        emit EventCanceled(block.timestamp);
+    }
+
+    function refundTicket(uint256 tokenId) external {
+    require(status == EventStatus.Canceled, "Event not canceled");
+    require(ownerOf(tokenId) == msg.sender, "Not ticket owner");
+
+    _burn(tokenId);
+
+    (bool success, ) = payable(msg.sender).call{value: ticketPrice}("");
+    require(success, "Refund failed");
+    }
+
+    function _update(
+    address to,
+    uint256 tokenId,
+    address auth
+    ) internal override returns (address) {
+
+        address from = _ownerOf(tokenId);
+
+        // permite mint e burn
+        if (from != address(0) && to != address(0)) {
+            revert("Transfers disabled");
+        }
+
+        return super._update(to, tokenId, auth);
+    }
 
     /// @notice Retorna o saldo atual armazenado no contrato
     function getContractBalance() external view returns (uint256) {
