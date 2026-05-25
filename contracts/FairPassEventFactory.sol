@@ -8,6 +8,9 @@ contract FairPassEventFactory is Ownable {
     /// @notice Lista de eventos criados por organizador
     mapping(address => FairPassEvent[]) public organizerEvents;
 
+    /// @dev Endereço do marketplace, que deve ser feito o deploy antes
+    address private marketplaceAddress;
+
     /// @notice Emitido quando um novo contrato de evento é criado
     /// @param eventContractAddress Endereço do contrato do evento
     /// @param ticketPrice Preço do ingresso
@@ -30,7 +33,11 @@ contract FairPassEventFactory is Ownable {
         uint256 timestamp
     );
 
-    constructor() Ownable(msg.sender) {}
+    constructor(
+        address _marketplaceAddress
+    ) Ownable(msg.sender) {
+        marketplaceAddress = _marketplaceAddress;
+    }
 
     /// @notice Cria um novo contrato de evento
     /// @param _name Nome do NFT do evento
@@ -51,7 +58,8 @@ contract FairPassEventFactory is Ownable {
             msg.sender,
             _ticketPrice,
             _maxSupply,
-            _eventTimestamp
+            _eventTimestamp,
+            marketplaceAddress
         );
         organizerEvents[msg.sender].push(newEvent);
 

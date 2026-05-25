@@ -32,6 +32,8 @@ contract FairPassEvent is ERC721, Ownable {
     /// @notice Timestamp de início do evento
     uint256 public immutable eventTimestamp;
 
+    address private immutable marketplaceAddress;
+
 
     /// @notice Emitido quando um novo ingresso é mintado
     /// @param buyer Endereço do comprador
@@ -73,13 +75,15 @@ contract FairPassEvent is ERC721, Ownable {
         address _eventOwner,
         uint256 _ticketPrice,
         uint256 _maxSupply,
-        uint256 _eventTimestamp
+        uint256 _eventTimestamp,
+        address _marketplaceAddress
     ) ERC721(_name, _symbol) Ownable(_eventOwner) {
         ticketPrice = _ticketPrice;
         maxSupply = _maxSupply;
         eventTimestamp = _eventTimestamp;
         factory = msg.sender;
         status = EventStatus.Active;
+        marketplaceAddress = _marketplaceAddress;
     }
 
     /// @notice Compra um ingresso NFT do evento
@@ -163,7 +167,9 @@ contract FairPassEvent is ERC721, Ownable {
 
         // permite mint e burn
         if (from != address(0) && to != address(0)) {
-            revert("Transfers disabled");
+            if (auth != marketplaceAddress){
+                revert("Transfers disabled");
+            }
         }
 
         return super._update(to, tokenId, auth);
