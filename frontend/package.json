@@ -8,9 +8,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-router-dom": "^7.15.1",
+    "tailwindcss": "^4.3.0",
     "viem": "latest",
     "wagmi": "latest"
   },
@@ -18,7 +21,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "latest",
-    "@wagmi/cli": "latest",
+    "@wagmi/cli": "^2.10.0",
     "typescript": "latest",
     "vite": "latest"
   }

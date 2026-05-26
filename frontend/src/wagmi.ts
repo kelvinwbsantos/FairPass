@@ -1,11 +1,13 @@
-import { createConfig, http } from 'wagmi'
-import { mainnet, sepolia } from 'wagmi/chains'
+import { createConfig, http, webSocket, fallback } from 'wagmi'
+import { localhost } from 'wagmi/chains'
 
 export const config = createConfig({
-  chains: [mainnet, sepolia],
+  chains: [localhost],
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [localhost.id]: fallback([
+      webSocket('ws://127.0.0.1:8545'), 
+      http('http://127.0.0.1:8545')
+    ]),
   },
 })
 

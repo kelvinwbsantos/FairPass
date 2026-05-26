@@ -1,47 +1,47 @@
-import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useConnection } from 'wagmi';
+import { Header } from './components/Header';
+import { CreateEventForm } from './components/CreateEventForm';
+import { EventPage } from './components/EventPage';
 
-function App() {
-  const connection = useConnection()
-  const { connect, status, error } = useConnect()
-  const connectors = useConnectors()
-  const { disconnect } = useDisconnect()
+function AppContent() {
+  const { isConnected } = useConnection();
+
+  if (!isConnected) {
+    return (
+      <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-md mx-auto px-6 mt-12">
+        <div className="text-4xl mb-4">🔑</div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Carteira Desconectada</h2>
+        <p className="text-slate-500 text-sm">
+          Por favor, utilize o botão de conexão no topo da página para autenticar e começar a criar ou interagir com os eventos do FairPass.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div>
-        <h2>Connection</h2>
-
-        <div>
-          status: {connection.status}
-          <br />
-          addresses: {JSON.stringify(connection.addresses)}
-          <br />
-          chainId: {connection.chainId}
-        </div>
-
-        {connection.status === 'connected' && (
-          <button type="button" onClick={() => disconnect()}>
-            Disconnect
-          </button>
-        )}
-      </div>
-
-      <div>
-        <h2>Connect</h2>
-        {connectors.map((connector) => (
-          <button
-            key={connector.uid}
-            onClick={() => connect({ connector })}
-            type="button"
-          >
-            {connector.name}
-          </button>
-        ))}
-        <div>{status}</div>
-        <div>{error?.message}</div>
-      </div>
-    </>
-  )
+    <Routes>
+      {/* Rota Principal: Fábrica de Eventos */}
+      <Route path="/" element={<CreateEventForm />} />
+      
+      /* Rota Dinâmica: Passando o endereço do contrato na URL
+      <Route path="/event/:address" element={<EventPage />} /> 
+      
+      {/* fallback para qualquer rota inexistente */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <div className="min-h-screen bg-slate-50 font-sans">
+        <Header />
+        <main className="max-w-4xl mx-auto px-4 py-12">
+          <AppContent />
+        </main>
+      </div>
+    </BrowserRouter>
+  );
+}
