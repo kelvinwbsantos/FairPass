@@ -3,6 +3,7 @@ import { useConnection } from 'wagmi';
 import { Header } from './components/Header';
 import { CreateEventForm } from './components/CreateEventForm';
 import { EventPage } from './components/EventPage';
+import { Marketplace } from './pages/Marketplace';
 
 function AppContent() {
   const { isConnected } = useConnection();
@@ -26,6 +27,9 @@ function AppContent() {
       
       /* Rota Dinâmica: Passando o endereço do contrato na URL
       <Route path="/event/:address" element={<EventPage />} /> 
+
+      {/* Rota Marketplace*/}
+      <Route path="/marketplace" element={<Marketplace />} />
       
       {/* fallback para qualquer rota inexistente */}
       <Route path="*" element={<Navigate to="/" replace />} />
