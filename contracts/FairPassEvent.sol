@@ -3,8 +3,25 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract FairPassEvent is ERC721, Ownable {
+contract FairPassEvent is ERC721, Ownable, ReentrancyGuard {
+    // ---------------------------- ERROS ----------------------------
+    error NoTicket();
+    error TicketTransferFailed();
+    error RefundFailed();
+    error EventNotCanceled();
+    error NotOwner();
+    error EventIsNotActive();
+    error EventTimestampWrong();
+    error WithdrawFailed();
+    error FeesPayFailed();
+    error OutOfTickets();
+    error WrongValuePayment();
+    error MaxTicketsNumber();
+    error EventNotCompleted();
+
+    // ---------------------------- STORAGE ----------------------------
     enum EventStatus {
         Active,
         Completed,
@@ -14,6 +31,9 @@ contract FairPassEvent is ERC721, Ownable {
     /// @notice Status do evento
     /// @dev Para simular a maquina de estado
     EventStatus public status;
+
+    /// @notice Mapeamento para rastrear o tokenId do ingresso possuído por cada usuário
+    mapping(address => uint256) public ownedToken;
 
     /// @notice Endereço da factory responsável pela criação do evento
     /// @dev Utilizado para recebimento das taxas da plataforma
@@ -32,6 +52,8 @@ contract FairPassEvent is ERC721, Ownable {
     uint256 public immutable eventTimestamp;
 
     address private immutable marketplaceAddress;
+
+    // ---------------------------- Eventos ----------------------------
 
     /// @notice Emitido quando um novo ingresso é mintado
     /// @param buyer Endereço do comprador
@@ -55,12 +77,10 @@ contract FairPassEvent is ERC721, Ownable {
         uint256 fee
     );
 
+    // ---------------------------- Funcoes ----------------------------
+
     event EventCanceled(uint256 timestamp);
-    event TicketsRefunded(
-        address indexed buyer,
-        uint256 amountRefunded,
-        uint256 quantity
-    );
+    event TicketRefunded(address indexed buyer, uint256 amountRefunded);
 
     /// @notice Inicializa um novo contrato de evento
     /// @param _name Nome do NFT
@@ -89,21 +109,21 @@ contract FairPassEvent is ERC721, Ownable {
     /// @notice Compra um ingresso NFT do evento
     /// @dev O mint é bloqueado após o encerramento do evento
     function mintTicket() external payable {
-        require(
-            status == EventStatus.Active,
-            "Event is not active for tickets"
-        );
-        require(block.timestamp < eventTimestamp, "Event already ended");
+        if (status != EventStatus.Active) revert EventIsNotActive();
 
-        require(_totalMinted < maxSupply, "Out of tickets");
-        require(msg.value == ticketPrice, "Not enough balance");
+        if (block.timestamp > eventTimestamp) revert EventTimestampWrong();
 
-        require(balanceOf(msg.sender) < 2, "Max 2 tickets per wallet");
+        if (_totalMinted >= maxSupply) revert OutOfTickets();
+        if (msg.value != ticketPrice) revert WrongValuePayment();
+        if (balanceOf(msg.sender) >= 1) revert MaxTicketsNumber();
 
-        uint256 tokenId = _totalMinted;
         _totalMinted++;
+        uint256 tokenId = _totalMinted;
 
         _safeMint(msg.sender, tokenId);
+
+        ownedToken[msg.sender] = tokenId;
+
         emit TicketMinted(msg.sender, address(this), tokenId);
     }
 
@@ -114,12 +134,10 @@ contract FairPassEvent is ERC721, Ownable {
 
     /// @notice Permite ao organizador sacar os fundos do evento
     /// @dev Uma taxa de 1% é enviada automaticamente para a factory
-    function withdrawFunds() external onlyOwner {
-        require(status == EventStatus.Completed, "Event has not ended yet");
-        require(
-            block.timestamp > eventTimestamp,
-            "Cannot withdraw until event is ended"
-        );
+    function withdrawFunds() external onlyOwner nonReentrant {
+        if (status != EventStatus.Completed) revert EventNotCompleted();
+
+        if (block.timestamp <= eventTimestamp) revert EventTimestampWrong();
 
         uint256 totalBalance = address(this).balance;
         require(totalBalance > 0, "No balance");
@@ -128,49 +146,55 @@ contract FairPassEvent is ERC721, Ownable {
         uint256 fee = (totalBalance * feeBps) / 10_000;
 
         (bool success, ) = payable(factory).call{value: fee}("");
-        require(success, "Transfer failed");
+        if (!success) revert FeesPayFailed();
 
         uint256 ownerAmount = totalBalance - fee;
 
         (bool successWithdraw, ) = payable(owner()).call{value: ownerAmount}(
             ""
         );
-        require(successWithdraw, "Transfer failed");
+        if (!successWithdraw) revert WithdrawFailed();
 
         emit EventRevenueWithdrawn(owner(), ownerAmount, fee);
     }
 
+    /// @notice Concluir evento
     function concludeEvent() external onlyOwner {
-        require(
-            status == EventStatus.Active,
-            "Event cannot end without starting"
-        );
-        require(block.timestamp > eventTimestamp, "Cannot end until last day");
+        if (status != EventStatus.Active) revert EventIsNotActive();
+
+        if (block.timestamp <= eventTimestamp) revert EventTimestampWrong();
 
         status = EventStatus.Completed;
         emit EventConcluded(block.timestamp);
     }
 
-    // cancel event function, needs to refund
+    /// @notice Cancelar evento
     function cancelEvent() external onlyOwner {
-        require(
-            status == EventStatus.Active,
-            "Event cannot be canceled without starting"
-        );
+        if (status != EventStatus.Active) revert EventIsNotActive();
+
         status = EventStatus.Canceled;
+
         emit EventCanceled(block.timestamp);
     }
 
-    function refundTicket(uint256 tokenId) external {
-        require(status == EventStatus.Canceled, "Event not canceled");
-        require(ownerOf(tokenId) == msg.sender, "Not ticket owner");
+    /// @notice Reembolsar ticket
+    /// @dev Reembolsa para o atual dono do ticket
+    function refundTicket(uint256 tokenId) external nonReentrant {
+        if (status != EventStatus.Canceled) revert EventNotCanceled();
+
+        if (ownerOf(tokenId) != msg.sender) revert NotOwner();
+
+        address payable recipient = payable(msg.sender);
 
         _burn(tokenId);
 
-        (bool success, ) = payable(msg.sender).call{value: ticketPrice}("");
-        require(success, "Refund failed");
+        (bool success, ) = recipient.call{value: ticketPrice}("");
+        if (!success) revert RefundFailed();
+
+        emit TicketRefunded(msg.sender, ticketPrice);
     }
 
+    /// @dev override para bloquear transferencias p2p (permite mint, burn, e transferencia pelo marketplace)
     function _update(
         address to,
         uint256 tokenId,
@@ -179,10 +203,15 @@ contract FairPassEvent is ERC721, Ownable {
         address from = super._update(to, tokenId, auth);
 
         if (from != address(0) && to != address(0)) {
-            require(
-                auth == marketplaceAddress,
-                "Only marketplace can transfer"
-            );
+            if (msg.sender != marketplaceAddress) revert TicketTransferFailed();
+        }
+
+        if (to != address(0) && to != marketplaceAddress) {
+            ownedToken[to] = tokenId;
+        }
+
+        if (from != address(0) && from != marketplaceAddress) {
+            ownedToken[from] = 0;
         }
 
         return from;
@@ -191,5 +220,14 @@ contract FairPassEvent is ERC721, Ownable {
     /// @notice Retorna o saldo atual armazenado no contrato
     function getContractBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    /// @notice Retorna o tokenId do ingresso possuído por um usuário
+    function getUserTicketId(address user) external view returns (uint256) {
+        uint256 balance = balanceOf(user);
+
+        if (balance == 0) revert NoTicket();
+
+        return ownedToken[user];
     }
 }

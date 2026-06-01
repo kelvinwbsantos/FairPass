@@ -3,13 +3,29 @@ pragma solidity ^0.8.20;
 
 import "./FairPassEvent.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract FairPassEventFactory is Ownable {
+contract FairPassEventFactory is Ownable, ReentrancyGuard {
+    
+    // ---------------------------- ERROS ----------------------------
+    error NoBalance();
+    error WithdrawFailed();
+    error InvalidAddress();
+    error InvalidEventDate();
+    error InvalidMaxSupply();
+
+    // ---------------------------- STORAGE ----------------------------
+
     /// @notice Lista de eventos criados por organizador
-    mapping(address => FairPassEvent[]) public organizerEvents;
+    mapping(address => address[]) public organizerEvents;
+
+    /// @notice Lista de eventos
+    address[] public allEvents;
 
     /// @dev Endereço do marketplace, que deve ser feito o deploy antes
-    address private marketplaceAddress;
+    address public immutable marketplaceAddress;
+
+    // ---------------------------- EVENTOS ----------------------------
 
     /// @notice Emitido quando um novo contrato de evento é criado
     /// @param eventContractAddress Endereço do contrato do evento
@@ -33,11 +49,20 @@ contract FairPassEventFactory is Ownable {
         uint256 timestamp
     );
 
-    constructor(
-        address _marketplaceAddress
-    ) Ownable(msg.sender) {
+    /// @notice Cria o contrato da factory
+    /// @dev Para deploy precisa do endereco do marketplace
+    /// @param _marketplaceAddress Endereço do marketplace
+    constructor(address _marketplaceAddress) Ownable(msg.sender) {
+        if (_marketplaceAddress == address(0))
+            revert InvalidAddress();
+            
         marketplaceAddress = _marketplaceAddress;
     }
+
+    // ---------------------------- FUNÇÕES ----------------------------
+
+    /// @dev Possibilita o contrato receber ether
+    receive() external payable {}
 
     /// @notice Cria um novo contrato de evento
     /// @param _name Nome do NFT do evento
@@ -52,6 +77,12 @@ contract FairPassEventFactory is Ownable {
         uint256 _maxSupply,
         uint256 _eventTimestamp
     ) external {
+        if (_eventTimestamp <= block.timestamp)
+            revert InvalidEventDate();
+
+        if (_maxSupply == 0)
+            revert InvalidMaxSupply();
+
         FairPassEvent newEvent = new FairPassEvent(
             _name,
             _symbol,
@@ -61,7 +92,9 @@ contract FairPassEventFactory is Ownable {
             _eventTimestamp,
             marketplaceAddress
         );
-        organizerEvents[msg.sender].push(newEvent);
+        organizerEvents[msg.sender].push(address(newEvent));
+
+        allEvents.push(address(newEvent));
 
         emit EventCreated(
             address(newEvent),
@@ -72,15 +105,26 @@ contract FairPassEventFactory is Ownable {
     }
 
     /// @notice Permite ao owner sacar as taxas acumuladas da plataforma
-    function withdrawFunds() external onlyOwner {
+    function withdrawFunds() external onlyOwner nonReentrant {
         uint256 totalBalance = address(this).balance;
-        require(totalBalance > 0, "No balance");
+        
+        if (totalBalance == 0)
+            revert NoBalance();
 
-        (bool successWithdraw, ) = payable(owner()).call{value: totalBalance}(
+        address payable recipient = payable(owner());
+
+        (bool successWithdraw, ) = recipient.call{value: totalBalance}(
             ""
         );
-        require(successWithdraw, "Transfer failed");
+        
+        if (!successWithdraw)
+            revert WithdrawFailed();
 
-        emit FundsWithdrawn(owner(), totalBalance, block.timestamp);
+        emit FundsWithdrawn(recipient, totalBalance, block.timestamp);
+    }
+
+    /// @notice Retornar todos os eventos
+    function getAllEvents() external view returns (address[] memory) {
+        return allEvents;
     }
 }
