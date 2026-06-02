@@ -63,6 +63,15 @@ export const fairPassEventAbi = [
     inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
     name: 'ERC721NonexistentToken',
   },
+  { type: 'error', inputs: [], name: 'EventIsNotActive' },
+  { type: 'error', inputs: [], name: 'EventNotCanceled' },
+  { type: 'error', inputs: [], name: 'EventNotCompleted' },
+  { type: 'error', inputs: [], name: 'EventTimestampWrong' },
+  { type: 'error', inputs: [], name: 'FeesPayFailed' },
+  { type: 'error', inputs: [], name: 'MaxTicketsNumber' },
+  { type: 'error', inputs: [], name: 'NoTicket' },
+  { type: 'error', inputs: [], name: 'NotOwner' },
+  { type: 'error', inputs: [], name: 'OutOfTickets' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -73,6 +82,11 @@ export const fairPassEventAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'RefundFailed' },
+  { type: 'error', inputs: [], name: 'TicketTransferFailed' },
+  { type: 'error', inputs: [], name: 'WithdrawFailed' },
+  { type: 'error', inputs: [], name: 'WrongValuePayment' },
   {
     type: 'event',
     anonymous: false,
@@ -224,14 +238,8 @@ export const fairPassEventAbi = [
         type: 'uint256',
         indexed: false,
       },
-      {
-        name: 'quantity',
-        internalType: 'uint256',
-        type: 'uint256',
-        indexed: false,
-      },
     ],
-    name: 'TicketsRefunded',
+    name: 'TicketRefunded',
   },
   {
     type: 'event',
@@ -302,6 +310,13 @@ export const fairPassEventAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: 'user', internalType: 'address', type: 'address' }],
+    name: 'getUserTicketId',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'owner', internalType: 'address', type: 'address' },
       { name: 'operator', internalType: 'address', type: 'address' },
@@ -329,6 +344,13 @@ export const fairPassEventAbi = [
     inputs: [],
     name: 'name',
     outputs: [{ name: '', internalType: 'string', type: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'address', type: 'address' }],
+    name: 'ownedToken',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -479,6 +501,10 @@ export const fairPassEventFactoryAbi = [
     ],
     stateMutability: 'nonpayable',
   },
+  { type: 'error', inputs: [], name: 'InvalidAddress' },
+  { type: 'error', inputs: [], name: 'InvalidEventDate' },
+  { type: 'error', inputs: [], name: 'InvalidMaxSupply' },
+  { type: 'error', inputs: [], name: 'NoBalance' },
   {
     type: 'error',
     inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
@@ -489,6 +515,8 @@ export const fairPassEventFactoryAbi = [
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
   },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'WithdrawFailed' },
   {
     type: 'event',
     anonymous: false,
@@ -566,6 +594,13 @@ export const fairPassEventFactoryAbi = [
   },
   {
     type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'allEvents',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: '_name', internalType: 'string', type: 'string' },
       { name: '_symbol', internalType: 'string', type: 'string' },
@@ -579,14 +614,26 @@ export const fairPassEventFactoryAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getAllEvents',
+    outputs: [{ name: '', internalType: 'address[]', type: 'address[]' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'marketplaceAddress',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: '', internalType: 'address', type: 'address' },
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'organizerEvents',
-    outputs: [
-      { name: '', internalType: 'contract FairPassEvent', type: 'address' },
-    ],
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
     stateMutability: 'view',
   },
   {
@@ -617,6 +664,7 @@ export const fairPassEventFactoryAbi = [
     outputs: [],
     stateMutability: 'nonpayable',
   },
+  { type: 'receive', stateMutability: 'payable' },
 ] as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -625,6 +673,25 @@ export const fairPassEventFactoryAbi = [
 
 export const fairPassMarketplaceAbi = [
   { type: 'constructor', inputs: [], stateMutability: 'nonpayable' },
+  { type: 'error', inputs: [], name: 'ListPriceTooHigh' },
+  { type: 'error', inputs: [], name: 'NotTicketOwner' },
+  { type: 'error', inputs: [], name: 'PaymentFailed' },
+  { type: 'error', inputs: [], name: 'ReentrancyGuardReentrantCall' },
+  { type: 'error', inputs: [], name: 'TicketNotListed' },
+  { type: 'error', inputs: [], name: 'WrongPaymentValue' },
+  {
+    type: 'function',
+    inputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    name: 'allListings',
+    outputs: [
+      { name: 'eventContract', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+      { name: 'seller', internalType: 'address', type: 'address' },
+      { name: 'price', internalType: 'uint256', type: 'uint256' },
+      { name: 'isListed', internalType: 'bool', type: 'bool' },
+    ],
+    stateMutability: 'view',
+  },
   {
     type: 'function',
     inputs: [
@@ -647,6 +714,26 @@ export const fairPassMarketplaceAbi = [
   },
   {
     type: 'function',
+    inputs: [],
+    name: 'getAllListings',
+    outputs: [
+      {
+        name: '',
+        internalType: 'struct FairPassMarketplace.ListedTicket[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'eventContract', internalType: 'address', type: 'address' },
+          { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+          { name: 'seller', internalType: 'address', type: 'address' },
+          { name: 'price', internalType: 'uint256', type: 'uint256' },
+          { name: 'isListed', internalType: 'bool', type: 'bool' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     inputs: [
       { name: 'eventContract', internalType: 'address', type: 'address' },
       { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
@@ -662,11 +749,8 @@ export const fairPassMarketplaceAbi = [
       { name: '', internalType: 'address', type: 'address' },
       { name: '', internalType: 'uint256', type: 'uint256' },
     ],
-    name: 'listings',
-    outputs: [
-      { name: 'seller', internalType: 'address', type: 'address' },
-      { name: 'price', internalType: 'uint256', type: 'uint256' },
-    ],
+    name: 'listingIndex',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
@@ -680,5 +764,44 @@ export const fairPassMarketplaceAbi = [
     name: 'onERC721Received',
     outputs: [{ name: '', internalType: 'bytes4', type: 'bytes4' }],
     stateMutability: 'nonpayable',
+  },
+] as const
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IFairPassEvent
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iFairPassEventAbi = [
+  {
+    type: 'function',
+    inputs: [{ name: 'owner', internalType: 'address', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'tokenId', internalType: 'uint256', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'from', internalType: 'address', type: 'address' },
+      { name: 'to', internalType: 'address', type: 'address' },
+      { name: 'tokenId', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'safeTransferFrom',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'ticketPrice',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
   },
 ] as const

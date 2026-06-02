@@ -1,20 +1,26 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useConnection } from 'wagmi';
-import { Header } from './components/Header';
-import { CreateEventForm } from './components/CreateEventForm';
-import { EventPage } from './components/EventPage';
-import { Marketplace } from './pages/Marketplace';
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useAccount } from "wagmi";
+
+import { Header } from "./components/Header";
+import { CreateEventForm } from "./pages/CreateEventForm";
+import { EventPage } from "./pages/EventPage";
+import { Marketplace } from "./pages/Marketplace";
+import { AllEvents } from "./pages/AllEvents";
+import Homepage from "./pages/Homepage";
 
 function AppContent() {
-  const { isConnected } = useConnection();
+  const { isConnected } = useAccount();
 
   if (!isConnected) {
     return (
       <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl shadow-sm max-w-md mx-auto px-6 mt-12">
-        <div className="text-4xl mb-4">🔑</div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Carteira Desconectada</h2>
+        <div className="text-4xl mb-4 font-black text-indigo-600">FairPass</div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">
+          Carteira desconectada
+        </h2>
         <p className="text-slate-500 text-sm">
-          Por favor, utilize o botão de conexão no topo da página para autenticar e começar a criar ou interagir com os eventos do FairPass.
+          Use o botão de conexão no topo da pagina para autenticar e interagir
+          com os eventos do FairPass.
         </p>
       </div>
     );
@@ -22,16 +28,11 @@ function AppContent() {
 
   return (
     <Routes>
-      {/* Rota Principal: Fábrica de Eventos */}
-      <Route path="/" element={<CreateEventForm />} />
-      
-      /* Rota Dinâmica: Passando o endereço do contrato na URL
-      <Route path="/event/:address" element={<EventPage />} /> 
-
-      {/* Rota Marketplace*/}
+      <Route path="/" element={<Homepage />} />
+      <Route path="/create-event" element={<CreateEventForm />} />
+      <Route path="/event/:address" element={<EventPage />} />
       <Route path="/marketplace" element={<Marketplace />} />
-      
-      {/* fallback para qualquer rota inexistente */}
+      <Route path="/all-events" element={<AllEvents />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
