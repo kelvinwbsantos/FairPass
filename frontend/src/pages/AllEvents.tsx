@@ -1,6 +1,10 @@
 import { useReadContract } from "wagmi";
-import { EventCard } from "../components/EventCard";
+import { EventCard } from "@/src/components/EventCard";
 import { fairPassEventFactoryAbi } from "../generated";
+
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, Mic } from "lucide-react";
 
 export function AllEvents() {
   const factoryAddress = import.meta.env
@@ -17,62 +21,68 @@ export function AllEvents() {
   });
 
   return (
-    <div className="space-y-10 animate-fade-in">
+    <div className="space-y-10 animate-fade-in container mx-auto px-4 max-w-7xl">
       {/* Cabeçalho */}
-      <div className="text-center py-4">
-        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
-          Todos os <span className="text-indigo-600">Eventos</span>
+      <div className="text-center py-6">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-foreground mb-3">
+          Todos os <span className="text-primary">Eventos</span>
         </h1>
-        <p className="text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
+        <p className="text-muted-foreground max-w-xl mx-auto text-balance">
           Explore e participe de todos os eventos ativos e criados de forma
           transparente no FairPass.
         </p>
       </div>
 
-      {/* Skeletons de Carregamento */}
+      {/* Skeletons de Carregamento (usando o Skeleton do shadcn) */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-6">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="bg-white border border-slate-200 rounded-2xl p-6 animate-pulse h-48"
-            />
+              className="flex flex-col space-y-3 p-6 border rounded-xl bg-card"
+            >
+              <Skeleton className="h-[125px] w-full rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
           ))}
         </div>
       )}
 
       {/* Mensagem de Erro */}
       {error && (
-        <div className="text-center py-10 bg-rose-50 rounded-2xl border border-rose-100 max-w-md mx-auto p-6">
-          <div className="text-3xl mb-2">❌</div>
-          <h3 className="text-sm font-bold text-rose-800 mb-1">
-            Erro ao carregar eventos
-          </h3>
-          <p className="text-xs text-rose-600 leading-relaxed">
-            Não foi possível ler a lista de eventos da blockchain.
-          </p>
-        </div>
+        <Alert variant="destructive" className="max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar eventos</AlertTitle>
+          <AlertDescription>
+            Não foi possível ler a lista de eventos da blockchain. Por favor,
+            verifique sua conexão.
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Estado Vazio (Array veio vazio do contrato) */}
+      {/* Estado Vazio */}
       {!isLoading &&
         !error &&
         (!eventAddresses || eventAddresses.length === 0) && (
-          <div className="text-center py-16 bg-white border border-dashed border-slate-300 rounded-2xl p-8 max-w-md mx-auto">
-            <div className="text-4xl mb-4">🎤</div>
-            <h3 className="text-lg font-bold text-slate-800 mb-1">
+          <div className="flex flex-col items-center justify-center text-center p-12 border border-dashed rounded-xl max-w-md mx-auto bg-background animate-in fade-in-50 duration-300">
+            <div className="p-4 bg-muted rounded-full mb-4 text-muted-foreground">
+              <Mic className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight mb-1">
               Nenhum evento encontrado
             </h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Nenhum contrato de evento foi gerado na rede até ao momento.
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Nenhum contrato de evento foi gerado na rede até o momento.
             </p>
           </div>
         )}
 
       {/* Lista de Eventos */}
       {!isLoading && !error && eventAddresses && eventAddresses.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* 🔥 Adicionado o tipo explicitamente aqui: (address: `0x${string}`) */}
+        <div className="flex flex-col gap-6">
           {(eventAddresses as readonly `0x${string}`[]).map(
             (address: `0x${string}`) => (
               <EventCard key={address} eventAddress={address} />
