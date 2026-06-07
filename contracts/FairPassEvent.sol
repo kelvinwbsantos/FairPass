@@ -222,12 +222,11 @@ contract FairPassEvent is ERC721, Ownable, ReentrancyGuard {
         return address(this).balance;
     }
 
-    /// @notice Retorna o tokenId do ingresso possuído por um usuário
-    function getUserTicketId(address user) external view returns (uint256) {
-        uint256 balance = balanceOf(user);
-
-        if (balance == 0) revert NoTicket();
-
-        return ownedToken[user];
+    /// @notice Retorna o tokenId do ingresso possuído por um usuário e um bool se possuir
+    function userTicket(
+        address user
+    ) external view returns (bool hasTicket, uint256 tokenId) {
+        hasTicket = balanceOf(user) > 0;
+        tokenId = ownedToken[user];
     }
 }

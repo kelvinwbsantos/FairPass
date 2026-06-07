@@ -12,6 +12,8 @@ export interface EventData {
   symbol: string;
   totalMinted: number;
   maxSupply: number;
+  balance: bigint;
+  eventTimestamp: number;
 }
 
 export function useFetchEvent(eventAddress: `0x${string}`) {
@@ -19,20 +21,50 @@ export function useFetchEvent(eventAddress: `0x${string}`) {
     contracts: [
       { address: eventAddress, abi: fairPassEventAbi, functionName: "owner" },
       { address: eventAddress, abi: fairPassEventAbi, functionName: "status" },
-      { address: eventAddress, abi: fairPassEventAbi, functionName: "ticketPrice" },
+      {
+        address: eventAddress,
+        abi: fairPassEventAbi,
+        functionName: "ticketPrice",
+      },
       { address: eventAddress, abi: fairPassEventAbi, functionName: "name" },
       { address: eventAddress, abi: fairPassEventAbi, functionName: "symbol" },
-      { address: eventAddress, abi: fairPassEventAbi, functionName: "totalMinted" },
-      { address: eventAddress, abi: fairPassEventAbi, functionName: "maxSupply" },
+      {
+        address: eventAddress,
+        abi: fairPassEventAbi,
+        functionName: "totalMinted",
+      },
+      {
+        address: eventAddress,
+        abi: fairPassEventAbi,
+        functionName: "maxSupply",
+      },
+      {
+        address: eventAddress,
+        abi: fairPassEventAbi,
+        functionName: "getContractBalance",
+      },
+      {
+        address: eventAddress,
+        abi: fairPassEventAbi,
+        functionName: "eventTimestamp",
+      },
     ],
   });
 
   const eventData: EventData | undefined = useMemo(() => {
     if (!data || data.some((res) => res.status === "failure")) return undefined;
 
-    const [owner, status, ticketPrice, name, symbol, totalMinted, maxSupply] = data.map(
-      (res) => res.result
-    );
+    const [
+      owner,
+      status,
+      ticketPrice,
+      name,
+      symbol,
+      totalMinted,
+      maxSupply,
+      contractBalance,
+      timestamp
+    ] = data.map((res) => res.result);
 
     return {
       owner: owner as `0x${string}`,
@@ -43,6 +75,8 @@ export function useFetchEvent(eventAddress: `0x${string}`) {
       symbol: symbol as string,
       totalMinted: Number(totalMinted),
       maxSupply: Number(maxSupply),
+      balance: contractBalance as bigint,
+      eventTimestamp: timestamp as number,
     };
   }, [data]);
 

@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAccount } from "wagmi";
+import { Toaster } from "@/components/ui/sonner"
 
 import { Header } from "./components/Header";
 import { CreateEventForm } from "./pages/CreateEventForm";
@@ -41,6 +42,7 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
+    <Toaster position="bottom-center" />
       <div className="min-h-screen bg-slate-50 font-sans">
         <Header />
         <main className="max-w-4xl mx-auto px-4 py-12">

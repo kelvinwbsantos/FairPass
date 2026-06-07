@@ -1,189 +1,277 @@
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useParams } from "react-router-dom";
-import { useAccount } from "wagmi";
-import { formatEther } from "viem";
-
-import { useEventData } from "../hooks/useEventData";
-import { ListTicketButton } from "../components/ListTicket";
-import { Ticket } from "../components/Ticket";
+import { useFetchEvent } from "../hooks/useFetchEvent";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useEventInteraction } from "../hooks/useEventInteraction";
+import { toast } from "sonner";
+import { useUserTicket } from "../hooks/useUserTicket";
+import { useConnection } from "wagmi";
+import { useMarketplaceInteraction } from "../hooks/useMarketplaceInteraction";
+import { useState } from "react";
+import { parseEther } from "viem";
 
 export function EventPage() {
-  const marketplaceAddress = import.meta.env.VITE_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`;
-  const { address } = useParams() as { address: `0x${string}` };
-  const { address: userAddress } = useAccount();
-
+  const { address: eventAddress } = useParams() as { address: `0x${string}` };
   const {
-    eventName,
-    symbol,
-    ticketPrice,
-    tokenId,
-    tokenIdBigInt,
-    mintedCount,
-    hasTicket,
-    hasValidToken,
-    isOwner,
-    isActive,
-    isCompleted,
-    isCancelled,
-    eventStatusLabel,
-    isLoading,
+    mintTicket,
+    cancelEvent,
+    withdrawFunds,
+    concludeEvent,
+    refundTicket,
     isPending,
-    writeError,
-    handleCancelEvent,
-    handleConcludeEvent,
-    handleWithdrawFunds,
-    handleMintTicket,
-    handleRefund,
-  } = useEventData(address, userAddress);
+    hash,
+  } = useEventInteraction(eventAddress);
+  const { userTicket } = useUserTicket(eventAddress);
+  const { address: userAddress } = useConnection();
 
-  if (isLoading) {
-    return <div className="p-8 text-center">Carregando dados do evento...</div>;
+  const { event, isLoading: isFetchingEvent } = useFetchEvent(eventAddress);
+
+  const isEventOwner = event?.owner == userAddress;
+
+  const statusLabels = ["Ativo", "Finalizado", "Cancelado"];
+  const statusColors: Record<number, "default" | "destructive" | "secondary"> =
+    {
+      0: "default", // Ativo
+      1: "secondary", // Finalizado
+      2: "destructive", // Cancelado
+    };
+
+  const canWithdrawFunds = event?.balance && event.status == 1 ? true : false;
+
+  const timestamp = Number(event?.eventTimestamp);
+  const date = new Date(timestamp * 1000);
+  const eventDate = date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const isEventPast = timestamp < nowInSeconds;
+  const isEventCanceled = event?.status == 2;
+  const isEventConcluded = event?.status == 1;
+  const isEventRunning = event?.status == 0;
+
+  const executeTx = async (
+    action: () => Promise<any>,
+    successMsg: string,
+    errorMsg: string,
+  ) => {
+    const toastId = toast.loading("Enviando transação...");
+
+    try {
+      await action();
+      toast.success(successMsg, {
+        id: toastId,
+        description: hash ? `Hash: ${hash.slice(0, 10)}...` : undefined,
+        action: hash && {
+          label: "Ver no Explorer",
+          onClick: () =>
+            window.open(`https://sepolia.etherscan.io/tx/${hash}`, "_blank"),
+        },
+      });
+    } catch (err: any) {
+      toast.error(err?.shortMessage || err?.message || errorMsg, {
+        id: toastId,
+      });
+    }
+  };
+
+  const handleMint = () =>
+    executeTx(
+      () => mintTicket(event?.ticketPrice!),
+      "Ingresso comprado com sucesso!",
+      "Falha ao comprar ingresso",
+    );
+
+  const handleCancelEvent = () =>
+    executeTx(
+      cancelEvent,
+      "Evento cancelado com sucesso!",
+      "Falha ao cancelar evento",
+    );
+
+  const handleWithdrawFunds = () =>
+    executeTx(
+      withdrawFunds,
+      "Saque realizado com sucesso!",
+      "Falha ao realizar saque",
+    );
+
+  const handleConcludeEvent = () =>
+    executeTx(
+      concludeEvent,
+      "Evento concluído com sucesso!",
+      "Falha ao concluir evento",
+    );
+
+  const handleRefund = () =>
+    executeTx(
+      () => refundTicket(BigInt(userTicket?.ticketId!)),
+      "Ticket reembolsado com sucesso!",
+      "Falha ao reembolsar ticket",
+    );
+
+  // Marketplace interaction
+  const marketplaceAddress = import.meta.env
+    .VITE_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`;
+
+  const { listTicket } = useMarketplaceInteraction(
+    marketplaceAddress,
+    eventAddress,
+  );
+
+  const [listPrice, setListPrice] = useState<string>("");
+
+  const handleListTicket = () => {
+    executeTx(
+      () => listTicket(BigInt(userTicket?.ticketId!), parseEther(listPrice)),
+      "Ticket listado com sucesso no marketplace!",
+      "Falha ao listar ticket",
+    );
+  };
+
+  if (isFetchingEvent || !event) {
+    return <Skeleton className="w-full h-24" />;
   }
 
   return (
-    <div className="max-w-xl mx-auto mt-12 px-6 py-8 bg-white border border-slate-200 rounded-3xl shadow-sm">
-      {/* Cabeçalho */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-black text-white flex items-center justify-center text-2xl font-bold">
-          FP
-        </div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          {eventName ?? "Carregando..."}
-        </h1>
-        <p className="text-slate-500 mt-2">Evento onchain com ingressos NFT</p>
-      </div>
+    <div className="flex flex-col md:flex-row items-start gap-4">
+      <div className="flex flex-col gap-4 w-150">
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>
+              {event.name} ({event.symbol})
+            </CardTitle>
+            <CardDescription>Endereço: {eventAddress}</CardDescription>
+            <CardAction className="flex gap-2">
+              <Badge variant={statusColors[event.status]}>
+                {statusLabels[event.status]}
+              </Badge>
+              <Badge>{event.formattedPrice} ETH</Badge>
+            </CardAction>
+          </CardHeader>
+          <CardFooter className="flex flex-row justify-between">
+            <Button
+              onClick={handleMint}
+              disabled={isPending || userTicket?.hasTicket || !isEventRunning}
+            >
+              {userTicket?.hasTicket
+                ? "Ingresso já adquirido"
+                : isPending
+                  ? "Processando..."
+                  : "Comprar ingresso"}
+            </Button>
+            <Badge>{eventDate}</Badge>
+          </CardFooter>
+        </Card>
 
-      {/* Símbolo + ingressos emitidos */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <p className="text-xs text-slate-500 mb-1">Simbolo</p>
-          <p className="text-lg font-semibold text-slate-800">{symbol ?? "--"}</p>
-        </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <p className="text-xs text-slate-500 mb-1">Ingressos emitidos</p>
-          <p className="text-lg font-semibold text-slate-800">{mintedCount}</p>
-        </div>
-      </div>
+        {isEventOwner && (
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Painel do Organizador</CardTitle>
+              </CardHeader>
+              <CardFooter className="flex flex-row gap-2">
+                <Button
+                  onClick={handleConcludeEvent}
+                  disabled={isPending || (event.status == 1 && !isEventPast || isEventCanceled)}
+                >
+                  {event.status == 2
+                    ? "Evento concluido"
+                    : isPending
+                      ? "Processando..."
+                      : "Concluir evento"}
+                </Button>
 
-      {/* Preço */}
-      <div className="mb-6 bg-black text-white rounded-2xl p-6 text-center">
-        <p className="text-sm text-slate-300 mb-2">Preco do ingresso</p>
-        <p className="text-4xl font-bold">
-          {ticketPrice ? `${formatEther(ticketPrice)} ETH` : "--"}
-        </p>
-      </div>
+                <Button
+                  onClick={handleCancelEvent}
+                  disabled={isPending || event.status != 0}
+                >
+                  {event.status == 2
+                    ? "Evento cancelado"
+                    : isPending
+                      ? "Processando..."
+                      : "Cancelar evento"}
+                </Button>
 
-      {/* Status */}
-      <div
-        className={`mb-6 rounded-2xl p-4 border ${
-          isCancelled ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"
-        }`}
-      >
-        <p className="text-xs text-slate-500 mb-1">Status do evento</p>
-        <p className={`text-lg font-semibold ${isCancelled ? "text-red-700" : "text-emerald-700"}`}>
-          {eventStatusLabel}
-        </p>
-      </div>
-
-      {/* Endereço do contrato */}
-      <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-        <p className="text-xs text-slate-500 mb-2">Endereco do contrato</p>
-        <p className="font-mono text-xs break-all text-slate-700">{address}</p>
-      </div>
-
-      {/* Erro de transação */}
-      {writeError && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
-          <p className="text-xs text-red-500 mb-1">Erro na transação</p>
-          <p className="text-sm text-red-700 break-all">{writeError.message}</p>
-        </div>
-      )}
-
-      {/* Painel do organizador */}
-      {isOwner ? (
-        <div className="mb-6 p-5 bg-amber-50 border border-amber-200 rounded-2xl">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-sm font-black text-amber-700">OWNER</span>
-            <p className="text-sm font-semibold text-amber-900">Painel do organizador</p>
+                <Button
+                  onClick={handleWithdrawFunds}
+                  disabled={isPending || !canWithdrawFunds}
+                >
+                  {!canWithdrawFunds
+                    ? "Não há fundos para sacar"
+                    : isPending
+                      ? "Processando..."
+                      : "Sacar fundos"}
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
+        )}
+      </div>
 
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={handleCancelEvent}
-              disabled={isPending || !isActive}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-medium transition-all disabled:opacity-50"
-            >
-              {isPending ? "Confirmando..." : isCancelled ? "Evento cancelado" : "Cancelar evento"}
-            </button>
+      {/* Ticket */}
+      {userTicket?.hasTicket && (
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>Seu ingresso</CardTitle>
+            <CardDescription>
+              {event.name} ({event.symbol})
+            </CardDescription>
+            <CardAction className="flex gap-2">
+              <Badge variant={statusColors[event.status]}>
+                {statusLabels[event.status]}
+              </Badge>
+            </CardAction>
+          </CardHeader>
 
-            <button
-              type="button"
-              onClick={handleConcludeEvent}
-              disabled={isPending || !isActive}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-medium transition-all disabled:opacity-50"
-            >
-              Finalizar evento
-            </button>
+          <CardFooter className="flex flex-col items-start gap-3">
+            <p>Id do ingresso: {userTicket.ticketId}</p>
 
-            <button
-              type="button"
-              onClick={handleWithdrawFunds}
-              disabled={isPending || !isCompleted}
-              className="w-full bg-black hover:opacity-90 text-white py-3 rounded-xl font-medium transition-all disabled:opacity-50"
-            >
-              Sacar fundos
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center">
-          <p className="text-sm text-slate-500">
-            Voce esta visualizando este evento como participante.
-          </p>
-        </div>
-      )}
+            {isEventCanceled && (
+              <Button onClick={handleRefund} disabled={isPending}>
+                Pedir reembolso
+              </Button>
+            )}
 
-      {/* Ação principal do participante */}
-      {hasTicket ? (
-        <div className="mb-6 text-center text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
-          Voce ja possui um ingresso para este evento.
-        </div>
-      ) : isCancelled ? (
-        <div className="mb-6 text-center text-sm text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-xl">
-          Evento cancelado. Apenas o dono atual de um ingresso pode solicitar reembolso.
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={handleMintTicket}
-          disabled={isPending}
-          className="w-full bg-black hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg transition-all disabled:opacity-50"
-        >
-          {isPending ? "Confirmando compra..." : "Comprar ingresso"}
-        </button>
-      )}
+            {!isEventCanceled && !isEventConcluded && (
+              <div className="w-full space-y-3">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Preço de venda (ETH)
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="0.05"
+                    value={listPrice}
+                    onChange={(e) => setListPrice(e.target.value)}
+                  />
+                </div>
 
-      {/* Ticket do usuário */}
-      {hasTicket && hasValidToken && tokenId !== undefined && tokenId !== null && (
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <Ticket
-            eventName={eventName ?? "Carregando..."}
-            symbol={symbol ?? "FP"}
-            tokenId={tokenId}
-            ticketPrice={ticketPrice}
-            contractAddress={address}
-            userAddress={userAddress ?? "0x0"}
-            isCancelled={isCancelled}
-            onRefund={handleRefund}
-            listTicketButton={
-              <ListTicketButton
-                marketplaceAddress={marketplaceAddress}
-                eventAddress={address}
-                tokenId={tokenIdBigInt!}
-              />
-            }
-          />
-        </div>
+                <Button
+                  onClick={handleListTicket}
+                  disabled={isPending || !listPrice || Number(listPrice) <= 0}
+                  className="w-full"
+                >
+                  Listar no Marketplace
+                </Button>
+              </div>
+            )}
+          </CardFooter>
+        </Card>
       )}
     </div>
   );
