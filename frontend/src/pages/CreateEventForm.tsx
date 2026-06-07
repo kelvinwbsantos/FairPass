@@ -10,22 +10,38 @@ import { parseEther } from "viem";
 
 import { fairPassEventFactoryAbi } from "../generated";
 
-const FACTORY_CONTRACT_ADDRESS = import.meta.env.VITE_FACTORY_CONTRACT_ADDRESS as `0x${string}`;
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+const FACTORY_CONTRACT_ADDRESS =
+  import.meta.env.VITE_FACTORY_CONTRACT_ADDRESS as `0x${string}`;
 
 export function CreateEventForm() {
   const navigate = useNavigate();
-  const { data: hash, error, isPending, writeContract } = useWriteContract();
-  const [deployedAddress, setDeployedAddress] = useState<`0x${string}` | null>(
-    null,
-  );
+
+  const { data: hash, error, isPending, writeContract } =
+    useWriteContract();
+
+  const [deployedAddress, setDeployedAddress] =
+    useState<`0x${string}` | null>(null);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     const formData = new FormData(e.currentTarget);
 
     const dateString = formData.get("_eventTimestamp") as string;
+
     const timestampInSeconds = Math.floor(
-      new Date(dateString).getTime() / 1000,
+      new Date(dateString).getTime() / 1000
     );
 
     writeContract({
@@ -63,143 +79,180 @@ export function CreateEventForm() {
   });
 
   return (
-    <div className="max-w-xl mx-auto bg-white border border-slate-200 p-8 rounded-2xl shadow-sm">
-      <form className="flex flex-col gap-5" onSubmit={submit}>
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Criar novo evento</h2>
-          <p className="text-xs text-slate-500 mt-1">Preencha os dados abaixo para publicar o contrato do evento na blockchain.</p>
-        </div>
+    <div className="mx-auto max-w-2xl">
+      <Card>
+        <CardHeader>
+          <CardTitle>Criar novo evento</CardTitle>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Nome do Evento</label>
-            <input
-              name="_name"
-              placeholder="Ex: Rock in Rio Pass"
-              required
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
-            />
-          </div>
+          <CardDescription>
+            Preencha os dados abaixo para publicar o contrato do
+            evento na blockchain.
+          </CardDescription>
+        </CardHeader>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Símbolo do Ingresso</label>
-            <input
-              name="_symbol"
-              placeholder="Ex: RIR-PASS"
-              required
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
-            />
-          </div>
+        <CardContent>
+          <form onSubmit={submit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome do Evento</Label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Preço (ETH)</label>
-              <input
-                name="_ticketPrice"
-                placeholder="0.05"
-                type="number"
-                step="any"
+              <Input
+                id="name"
+                name="_name"
+                placeholder="Ex: Rock in Rio Pass"
                 required
-                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Quantidade Máxima</label>
-              <input
-                name="_maxSupply"
-                placeholder="500"
-                type="number"
+            <div className="space-y-2">
+              <Label htmlFor="symbol">
+                Símbolo do Ingresso
+              </Label>
+
+              <Input
+                id="symbol"
+                name="_symbol"
+                placeholder="Ex: RIR-PASS"
                 required
-                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
               />
             </div>
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Data e Hora do Evento</label>
-            <input
-              name="_eventTimestamp"
-              type="datetime-local"
-              required
-              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
-            />
-          </div>
-        </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="ticketPrice">
+                  Preço (ETH)
+                </Label>
 
-        <button
-          disabled={isPending || isConfirming}
-          type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-sm transition active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none mt-2"
-        >
-          {isPending ? "Aguardando carteira..." : isConfirming ? "Criando na Blockchain..." : "Criar evento"}
-        </button>
+                <Input
+                  id="ticketPrice"
+                  name="_ticketPrice"
+                  type="number"
+                  step="any"
+                  placeholder="0.05"
+                  required
+                />
+              </div>
 
-        {/* Feedbacks de Status */}
-        {(hash || isConfirming || isConfirmed || error) && (
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm space-y-2 flex flex-col">
-            {hash && (
-              <div className="text-slate-600 truncate">
-                <span className="font-semibold text-slate-700">Hash:</span>{" "}
-                <code className="text-xs font-mono bg-slate-200 px-1.5 py-0.5 rounded text-slate-800 select-all">{hash}</code>
+              <div className="space-y-2">
+                <Label htmlFor="maxSupply">
+                  Quantidade Máxima
+                </Label>
+
+                <Input
+                  id="maxSupply"
+                  name="_maxSupply"
+                  type="number"
+                  placeholder="500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="eventDate">
+                Data e Hora do Evento
+              </Label>
+
+              <Input
+                id="eventDate"
+                name="_eventTimestamp"
+                type="datetime-local"
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isPending || isConfirming}
+            >
+              {isPending
+                ? "Aguardando carteira..."
+                : isConfirming
+                ? "Criando na Blockchain..."
+                : "Criar evento"}
+            </Button>
+
+            {(hash || isConfirming || isConfirmed || error) && (
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                {hash && (
+                  <div className="text-sm">
+                    <span className="font-medium">
+                      Hash:
+                    </span>
+
+                    <code className="ml-2 rounded bg-muted px-2 py-1 text-xs">
+                      {hash}
+                    </code>
+                  </div>
+                )}
+
+                {isConfirming && (
+                  <p className="text-sm text-muted-foreground">
+                    ⏳ Enviando transação para a rede...
+                  </p>
+                )}
+
+                {isConfirmed && !deployedAddress && (
+                  <p className="text-sm text-green-600">
+                    ✅ Transação confirmada! Aguardando o
+                    endereço do evento...
+                  </p>
+                )}
+
+                {error && (
+                  <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+                    {(error as BaseError).shortMessage ||
+                      error.message}
+                  </div>
+                )}
               </div>
             )}
-            
-            {isConfirming && (
-              <div className="text-amber-600 font-medium animate-pulse flex items-center gap-1.5">
-                ⏳ Enviando transação para a rede...
-              </div>
-            )}
-            
-            {isConfirmed && !deployedAddress && (
-              <div className="text-emerald-600 font-medium">
-                ✅ Transação confirmada! Aguardando o endereço do evento...
-              </div>
-            )}
-            
-            {error && (
-              <div className="text-rose-600 font-medium bg-rose-50 border border-rose-100 p-2.5 rounded-lg text-xs">
-                ❌ Erro: {(error as BaseError).shortMessage || error.message}
-              </div>
-            )}
-          </div>
-        )}
-      </form>
+          </form>
+        </CardContent>
+      </Card>
 
-      {/* Caixa de Sucesso Final */}
       {deployedAddress && (
-        <div className="mt-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col gap-3 animate-fade-in">
-          <div>
-            <div className="text-emerald-800 font-bold text-sm">
+        <Card className="mt-6 border-green-500/20">
+          <CardHeader>
+            <CardTitle>
               🎉 Contrato criado com sucesso!
+            </CardTitle>
+
+            <CardDescription>
+              Seu evento já possui um endereço exclusivo na
+              blockchain.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="rounded-md border bg-muted p-3">
+              <code className="text-sm break-all">
+                {deployedAddress}
+              </code>
             </div>
-            <p className="text-xs text-emerald-600 mt-0.5">Seu evento já possui um endereço exclusivo na blockchain.</p>
-          </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white border border-emerald-100 p-2.5 rounded-xl justify-between shadow-sm">
-            <code className="font-mono text-xs text-emerald-900 truncate select-all pr-2">
-              {deployedAddress}
-            </code>
-
-            <div className="flex gap-2 shrink-0 justify-end">
-              <button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(deployedAddress)}
-                className="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-slate-200 active:scale-95 transition"
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  navigator.clipboard.writeText(
+                    deployedAddress
+                  )
+                }
               >
                 Copiar
-              </button>
+              </Button>
 
-              <button
-                type="button"
-                onClick={() => navigate(`/event/${deployedAddress}`)}
-                className="text-xs bg-indigo-600 text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-indigo-700 active:scale-95 transition shadow-sm"
+              <Button
+                onClick={() =>
+                  navigate(`/event/${deployedAddress}`)
+                }
               >
                 Ver evento
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

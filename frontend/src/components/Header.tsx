@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useConnection, useConnect, useDisconnect, useConnectors } from "wagmi";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, status, error } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { address, isConnected } = useConnection();
+  
+  const connectors = useConnectors();
+  
+  const connectMutation = useConnect();
+  const disconnectMutation = useDisconnect();
 
   const formatAddress = (addr: string | undefined) => {
     if (!addr) return "";
@@ -12,80 +16,77 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center shadow-sm">
+    <header className="flex flex-col gap-4 border-b border-border bg-background px-6 py-4 lg:flex-row lg:items-center lg:justify-between shadow-sm">
+      {/* Navegação / Links */}
       <div className="flex flex-wrap items-center gap-3">
-        <h3 className="text-xl font-extrabold text-indigo-600 tracking-tight">
+        <h3 className="text-xl font-extrabold text-primary tracking-tight mr-2">
           FairPass Eventos
         </h3>
 
-        <Link
-          to="/"
-          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-4 py-2 rounded-xl transition"
-        >
-          Inicio
-        </Link>
+        <Button asChild variant="secondary" size="sm" className="rounded-xl">
+          <Link to="/">Inicio</Link>
+        </Button>
 
-        <Link
-          to="/create-event"
-          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-4 py-2 rounded-xl transition"
-        >
-          Criar evento
-        </Link>
+        <Button asChild variant="secondary" size="sm" className="rounded-xl">
+          <Link to="/create-event">Criar evento</Link>
+        </Button>
 
-        <Link
-          to="/marketplace"
-          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-4 py-2 rounded-xl transition"
-        >
-          Marketplace
-        </Link>
+        <Button asChild variant="secondary" size="sm" className="rounded-xl">
+          <Link to="/marketplace">Marketplace</Link>
+        </Button>
 
-        <Link
-          to="/all-events"
-          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm px-4 py-2 rounded-xl transition"
-        >
-          Todos os eventos
-        </Link>
+        <Button asChild variant="secondary" size="sm" className="rounded-xl">
+          <Link to="/all-events">Todos os eventos</Link>
+        </Button>
       </div>
 
+      {/* Autenticação */}
       <div className="flex flex-wrap items-center gap-3">
         {isConnected ? (
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 pl-4 pr-2 py-1.5 rounded-xl shadow-sm">
-            <span className="text-sm font-mono font-semibold text-slate-700">
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 py-1 pl-4 pr-1 shadow-sm">
+            <span className="font-mono text-sm font-semibold text-muted-foreground">
               {formatAddress(address)}
             </span>
-            <button
+            <Button
               type="button"
-              onClick={() => disconnect()}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs px-3 py-1.5 rounded-lg transition"
+              variant="destructive"
+              size="sm"
+              onClick={() => disconnectMutation.mutate()}
+              className="h-8 rounded-lg text-xs font-bold"
+              disabled={disconnectMutation.isPending}
             >
               Desconectar
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {connectors.map((connector) => (
-              <button
+              <Button
                 key={connector.uid}
-                onClick={() => connect({ connector })}
+                onClick={() => connectMutation.mutate({ connector })}
                 type="button"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-4 py-2 rounded-xl shadow-sm transition active:scale-95"
+                size="sm"
+                className="rounded-xl shadow-sm active:scale-95 transition-transform"
+                disabled={connectMutation.isPending}
               >
                 Conectar {connector.name}
-              </button>
+              </Button>
             ))}
           </div>
         )}
 
-        {status === "pending" && (
-          <div className="text-xs text-amber-600 font-medium animate-pulse">
+        {/* Status de Carregamento */}
+        {connectMutation.isPending && (
+          <div className="animate-pulse text-xs font-medium text-amber-500">
             Aguardando assinatura...
           </div>
         )}
 
-        {error && (
-          <div className="text-xs text-rose-600 font-medium bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100">
-            {error.message.includes("rejected")
-              ? "Conexao rejeitada"
+        {/* Mensagem de Erro */}
+        {connectMutation.error && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
+            {connectMutation.error.message.includes("rejected")
+              ? "Conexão rejeitada"
               : "Erro ao conectar"}
           </div>
         )}
