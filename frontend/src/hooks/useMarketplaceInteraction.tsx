@@ -35,7 +35,7 @@ export function useMarketplaceInteraction(
           hash: listHash,
         });
 
-        return listReceipt;
+        return {listReceipt, approveReceipt};
       } catch (err) {
         console.error("Error listing ticket:", err);
         throw err;
