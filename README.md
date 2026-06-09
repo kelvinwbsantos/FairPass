@@ -60,7 +60,7 @@ Demonstrar como smart contracts podem automatizar acordos, pagamentos e regras d
 - **Novo comprador** — compra o ticket em revenda
 - **Marketplace** — custódia do NFT durante a listagem
 
-## Como executar
+## Como executar localmente
 
 ### Instalar dependências
 
@@ -70,57 +70,65 @@ Na raiz do projeto:
 npm install
 ```
 
-No frontend:
+### Rodar nó local
+
+Ainda na raiz do projeto:
+
+```bash
+npx hardhat node
+```
+
+### Fazer deploy dos contratos localmente
+
+Crie um novo terminal e use o ignition:
+
+```bash
+npx hardhat ignition deploy ./ignition/modules/FairPassModule.ts --network localhost
+```
+
+### Instalar dependências do frontend
 
 ```bash
 cd frontend
 npm install
 ```
 
-### Compilar contratos
+### Configurar ambiente
+
+Crie um .env e:
 
 ```bash
-npx hardhat compile
+VITE_FACTORY_CONTRACT_ADDRESS= 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+VITE_MARKETPLACE_CONTRACT_ADDRESS= 0x5FbDB2315678afecb367f032d93F642f64180aa3
+```
+### Gera a abi usando a cli do wagmi
+
+```bash
+npx wagmi generate
 ```
 
-### Rodar testes
+### Rode o servidor de desenvolvimento do front end
+
+```bash
+npm run dev
+```
+
+### Acesse no seu navegador
+
+```bash
+localhost:5173
+```
+
+
+--------------
+
+## Rodar testes
 
 ```bash
 npx hardhat test
 ```
 
 Os testes cobrem criação de evento, compra de ingresso, bloqueio de transferência P2P, listagem e compra no marketplace, cancelamento, reembolso após revenda e saque com taxa de plataforma.
-
-### Blockchain local + frontend
-
-Terminal 1 — nó local:
-
-```bash
-npx hardhat node
-```
-
-Terminal 2 — deploy dos contratos base (Marketplace e Factory) via console Hardhat ignition:
-
-```bash
-npx hardhat ignition deploy ignition/modules/FairPassModule.ts --network localhost
-```
-
-Terminal 3 — frontend:
-Crie um arquivo `frontend/.env` com:
-
-```env
-VITE_SEPOLIA_RPC_URL= Nó privado ou público da sepolia em http
-VITE_SEPOLIA_RPC_WS_URL= Nó privado ou público da sepolia em websocket
-VITE_FACTORY_CONTRACT_ADDRESS= 0x... Endereço local ou sepolia da factory
-VITE_MARKETPLACE_CONTRACT_ADDRESS= 0x... Endereço local ou sepolia do marketplace
-```
-
-```bash
-cd frontend
-npm run dev
-```
-
-A aplicação abre em `localhost:5173`.
 
 
 ### Endereços de deploy
