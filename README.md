@@ -17,6 +17,33 @@ Demonstrar como smart contracts podem automatizar acordos, pagamentos e regras d
 - o **marketplace** custodia o NFT em escrow e repassa pagamento automaticamente;
 - o **marketplace** bloqueia listagens de ingressos por valores acima do seu valor base;
 - em **cancelamento**, apenas o dono atual do NFT recebe reembolso on-chain.
+  
+## O Problema
+O cambismo destruiu a confiança no mercado de ingressos. Bots compram centenas de ingressos em segundos, revendedores inflam os preços e quem realmente quer ir ao evento paga caro ou fica de fora. Além do sobrepreço, surgem outros problemas quando ingressos mudam de mão fora do sistema: sem garantia de validade, sem rastreabilidade e sem clareza sobre quem recebe o reembolso se o evento cancelar.
+
+## A Solução
+FairPass é uma infraestrutura on-chain de ingressos onde as regras anti-cambismo ficam no contrato inteligente, não nos termos de uso. Cada ingresso é um NFT ERC721 que representa acesso ao evento, propriedade verificável e direito ao reembolso. As regras que visam diminuir o cambismo são três:
+1. Limite de compra: máximo de 1 ingresso por carteira.
+2. Bloqueio de transferência direta: ingressos não podem ser passados de carteira para carteira. Para vender, obrigatoriamente passa pelo marketplace do protocolo. O mercado paralelo informal não tem onde se conectar.
+3. Teto de preço na revenda: o marketplace rejeita listagens acima do preço original. Sobrepreço é impossível dentro do protocolo.
+Na revenda, o NFT vai imediatamente para custódia do contrato (escrow). Quando alguém compra, o contrato executa a troca: NFT para o comprador, ETH para o vendedor, sem depender de confiança entre as partes.
+Se o evento for cancelado, o reembolso vai para quem possui o NFT no momento, não para quem comprou originalmente.
+
+## Arquitetura
+ 
+```mermaid
+flowchart LR
+  User["Usuário / Carteira"] --> Frontend["Frontend React"]
+  Frontend --> Wagmi["wagmi + viem"]
+  Wagmi --> Chain["Blockchain / Testnet"]
+ 
+  Chain --> Factory["FairPassEventFactory"]
+  Factory --> Event["FairPassEvent"]
+ 
+  Event --> NFT["Ticket NFT"]
+  Marketplace --> Escrow["Escrow de Revenda"]
+  Event --> Marketplace["FairPassMarketplace"]
+```
 
 ## Exemplos de aplicação
 
@@ -44,7 +71,7 @@ Demonstrar como smart contracts podem automatizar acordos, pagamentos e regras d
 /contracts          Smart contracts (Event, Factory, Marketplace)
 /frontend           dApp React + wagmi
 /test               Testes de integração dos contratos Hardhat + viem
-/docs               LITEPAPER.md e vídeos (pitch e fluxo) (documentação estendida)
+/docs               pdf da apresentação e vídeos (pitch e fluxo)
 ```
 
 ### Contratos
