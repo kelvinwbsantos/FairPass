@@ -1,5 +1,7 @@
 # FairPass
 
+![Descrição da Imagem](docs/fairpass.gif)
+
 ## Sobre o desafio
 
 Projeto desenvolvido para o desafio **TrustCode** do Hackathon Web3 RESTIC 29.
@@ -13,7 +15,7 @@ Demonstrar como smart contracts podem automatizar acordos, pagamentos e regras d
 - cada ingresso é um **NFT ERC721** com direito de acesso e reembolso;
 - a **compra primária** limita 1 ticket por carteira (anti-scalping);
 - o **marketplace** custodia o NFT em escrow e repassa pagamento automaticamente;
-- - o **marketplace** bloqueia listagens de ingressos por valores acima do seu valor base;
+- o **marketplace** bloqueia listagens de ingressos por valores acima do seu valor base;
 - em **cancelamento**, apenas o dono atual do NFT recebe reembolso on-chain.
 
 ## Exemplos de aplicação
@@ -23,7 +25,7 @@ Demonstrar como smart contracts podem automatizar acordos, pagamentos e regras d
 - Pagamentos automáticos
 - Regras de negócio programáveis (limite de compra, teto de revenda, taxa de plataforma)
 
-## Tecnologias sugeridas
+## Tecnologias usadas
 
 - Solidity
 - Hardhat 3
@@ -47,11 +49,11 @@ Demonstrar como smart contracts podem automatizar acordos, pagamentos e regras d
 
 ### Contratos
 
-| Contrato               | Responsabilidade                                              |
-| ---------------------- | ------------------------------------------------------------- |
-| `FairPassEvent`        | Emissão de ingressos NFT, status do evento, reembolso e saque |
-| `FairPassEventFactory` | Criação de novos eventos e taxa de plataforma (1%)            |
-| `FairPassMarketplace`  | Revenda com escrow, pagamento automático ao vendedor          |
+| Contrato               | Responsabilidade                                                                   |
+| ---------------------- | -----------------------------------------------------------------------------------|
+| `FairPassEvent`        | Emissão de ingressos NFT, status do evento, reembolso e saque                      |
+| `FairPassEventFactory` | Criação de novos eventos e taxa de plataforma (1%)                                 |
+| `FairPassMarketplace`  | Revenda com escrow, sistema anti-cambismopagamento automático ao vendedor          |
 
 ### Participantes do fluxo
 
@@ -165,7 +167,7 @@ Kelvin William de Brito Santos
 Pitch: https://www.youtube.com/watch?v=iADRBtsdWos
 Demo-fluxo: https://youtu.be/qVKFpRQTcWk
 
-## Aviso sobre o Uso de IA
+## Aviso sobre o uso de IA
 
 Este projeto foi desenvolvido utilizando a prática de _pair programming_ (programação em par) com ferramentas de Inteligência Artificial (incluindo Google Gemini, OpenAI ChatGPT, xAI Grok e Anthropic Claude). Essas ferramentas foram utilizadas como parceiras de desenvolvimento para:
 
